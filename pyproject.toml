@@ -12,6 +12,7 @@ dependencies = [
     "tenacity",
     "jinja2",
     "rich",
+    "verl>=0.4.1",
 ]
 
 [project.optional-dependencies]

@@ -1,6 +1,6 @@
 # Reproduction of *Surfacing Pathological Behaviors in Language Models*
 
-This project is a small-scale reproduction of the paper.
+This project is a small-scale reproduction of the [paper](https://transluce.org/pathological-behaviors) by Transluce.
 
 ### 1. Experiment Specification
 
