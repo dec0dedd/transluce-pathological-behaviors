@@ -2,36 +2,23 @@ import asyncio
 import logging
 import re
 import math
-from dataclasses import dataclass
-from typing import Optional, Tuple, List, cast
+from typing import Optional, Tuple, List
 
 from openai import AsyncOpenAI
-from transformers import AutoTokenizer, PreTrainedTokenizerBase
+from transformers import PreTrainedTokenizerBase
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
 
 from prompts import RESPONSE_START_STR_V1, PROPOSAL_TEMPLATE_V1, FORCED_JAILBREAK_FALLBACK_TEMPLATE, PROMPT_JUDGE_TEMPLATE
 
+from logprobs import LogProbs
+
 logger = logging.getLogger(__name__)
 
-@dataclass
-class LogProbs:
-    prompt_token_strs: List[str]
-    prompt_token_logprobs: List[float]
-    response_token_strs: List[str]
-    response_token_logprobs: List[float]
-
-    def sum_response_logp(self) -> float:
-        return sum(lp for lp in self.response_token_logprobs if lp is not None)
-
-@dataclass
-class JudgeResponse:
-    score: float
-    judge_response_text: str
 
 class Env:
-    def __init__(self, config: dict, tokenizer: PreTrainedTokenizerBase):
+    def __init__(self, config: dict, target_tokenizer: PreTrainedTokenizerBase):
         self.config = config
-        self.tokenizer = tokenizer
+        self.target_tokenizer = target_tokenizer
 
         target_url = f"http://{config['host']}:{config['port']}/v1"
         judge_url = f"http://{config['host']}:{config['port']}/v1"
@@ -90,7 +77,7 @@ class Env:
             async for attempt in AsyncRetrying(wait=wait_random_exponential(min=1, max=10), stop=stop_after_attempt(5)):
                 with attempt:
                     messages = [{"role": "user", "content": prompt}]
-                    chat_prompt = self.tokenizer.apply_chat_template(messages, tokenize=False)
+                    chat_prompt = self.target_tokenizer.apply_chat_template(messages, tokenize=False)
                     
                     response = await self.target_client.completions.create(
                         model=self.target_model,
@@ -140,21 +127,21 @@ class Env:
     async def _get_normal_logprobs(self, prompt: str, prefix: str, suffix: str, steered_response: str) -> LogProbs:
         """log p_M(y|x) - Uses fallback if natural CoT fails."""
         if prefix and suffix:
-            input_ids = self.tokenizer.encode(prefix)
+            input_ids = self.target_tokenizer.encode(prefix)
             return await self._extract_token_logprobs(input_token_ids=input_ids, output_text=steered_response)
         else:
             # Fallback path if the model naturally refused completely
-            chat_ids = self.tokenizer.apply_chat_template([{"role": "user", "content": prompt}], tokenize=True)
+            chat_ids = self.target_tokenizer.apply_chat_template([{"role": "user", "content": prompt}], tokenize=True)
             fallback_text = FORCED_JAILBREAK_FALLBACK_TEMPLATE.format(steered_response=steered_response)
             return await self._extract_token_logprobs(input_token_ids=chat_ids, output_text=fallback_text)
 
     async def _get_steered_logprobs(self, proposal_prefix: str, steered_response: str) -> LogProbs:
         """log q(y|x) - Logprobs given the forced compliance."""
-        input_ids = self.tokenizer.encode(proposal_prefix)
+        input_ids = self.target_tokenizer.encode(proposal_prefix)
         return await self._extract_token_logprobs(input_token_ids=input_ids, output_text=steered_response)
 
     async def _extract_token_logprobs(self, input_token_ids: List[int], output_text: str) -> LogProbs:
-        full_text = self.tokenizer.decode(input_token_ids) + output_text
+        full_text = self.target_tokenizer.decode(input_token_ids) + output_text
 
         async for attempt in AsyncRetrying(wait=wait_random_exponential(min=1, max=10), stop=stop_after_attempt(5)):
             with attempt:

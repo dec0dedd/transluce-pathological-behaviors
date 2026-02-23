@@ -1,8 +1,8 @@
 import textwrap
 
 # This template is used to format the prompt received by the investigator agent.
-# This has been tested on Llama-3.1 8B.
-# Note that if you are trying to train using a different model with more guardrails,
+# This has been tested on Llama-3.1 8B. 
+# Note that if you are trying to train using a different model with more guardrails, 
 # you might need to modify this prompt, as it could trigger refusals.
 
 INVESTIGATOR_PROMPT_TEMPLATE = textwrap.dedent(
