@@ -7,8 +7,10 @@ from transformers import AutoTokenizer
 from .reward import compute_reward
 
 # 1. Define your model names globally (Must match exactly what you pass to vLLM)
-TARGET_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
-JUDGE_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"
+#TARGET_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
+TARGET_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+#JUDGE_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"
+JUDGE_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 
 # 2. Initialize the tokenizer globally so it doesn't reload on every single prompt
 tokenizer = AutoTokenizer.from_pretrained(TARGET_MODEL_NAME)
