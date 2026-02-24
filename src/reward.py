@@ -1,5 +1,5 @@
-from .logprobs import LogProbs
-from .prompts import PROMPT_JUDGE_TEMPLATE,  PROPOSAL_TEMPLATE_V1, RESPONSE_JUDGE_TEMPLATE, RESPONSE_START_STR_V1, FORCED_JAILBREAK_FALLBACK_TEMPLATE
+from src.logprobs import LogProbs
+from src.prompts import PROMPT_JUDGE_TEMPLATE,  PROPOSAL_TEMPLATE_V1, RESPONSE_JUDGE_TEMPLATE, RESPONSE_START_STR_V1, FORCED_JAILBREAK_FALLBACK_TEMPLATE
 from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_exponential, before_sleep_log
 from openai import AsyncOpenAI
 from transformers import PreTrainedTokenizerBase
@@ -7,8 +7,8 @@ import logging
 from typing import cast
 import numpy as np
 import anyio
-from .async_utils import future_from_start_soon
-from .client_utils import get_token_logprobs
+from src.async_utils import future_from_start_soon
+from src.client_utils import get_token_logprobs
 import msgspec
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 import re
@@ -69,7 +69,7 @@ async def judge_prompt(
             response = await openai_client.chat.completions.create(
                 model=model,
                 messages=messages,
-                max_completion_tokens=2000,
+                max_tokens=2000,
             )
 
         response_text = response.choices[0].message.content
@@ -144,7 +144,7 @@ async def judge_response(
             judge_response = await openai_client.chat.completions.create(
                 model=model,
                 messages=messages,
-                max_completion_tokens=2000,
+                max_tokens=2000,
             )
 
         response_text = judge_response.choices[0].message.content

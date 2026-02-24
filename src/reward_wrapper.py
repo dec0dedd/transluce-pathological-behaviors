@@ -4,18 +4,18 @@ from transformers import AutoTokenizer
 
 # Import the original complex logic from where you saved it
 # (Assuming you saved the code you provided as 'transluce_logic.py' in the same folder)
-from .reward import compute_reward
+from src.reward import compute_reward
 
 # 1. Define your model names globally (Must match exactly what you pass to vLLM)
 #TARGET_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
-TARGET_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+TARGET_MODEL_NAME = "HuggingFaceTB/SmolLM2-135M-Instruct"
 #JUDGE_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"
-JUDGE_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+JUDGE_MODEL_NAME = "HuggingFaceTB/SmolLM2-135M-Instruct"
 
 # 2. Initialize the tokenizer globally so it doesn't reload on every single prompt
 tokenizer = AutoTokenizer.from_pretrained(TARGET_MODEL_NAME)
 
-def compute_score(solution_str: str, ground_truth: dict) -> float:
+def compute_score(data_source, solution_str: str, ground_truth: dict, extra_info=None) -> float:
     behavior = ground_truth.get('behavior', '')
     behavior_id = ground_truth.get('behavior_id', 'unknown')
     optimizer_target = ground_truth.get('optimizer_target', 'target_model')

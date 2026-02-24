@@ -1,0 +1,59 @@
+# configs/grpo_jailbreak.yaml
+
+algorithm:
+  adv_estimator: grpo
+  use_kl_in_reward: False
+
+critic:
+  model:
+    path: null
+    tokenizer_path: null
+
+data:
+  train_files: prepared/train.parquet
+  train_batch_size: 1
+  max_prompt_length: 2048
+  max_response_length: 1024
+  filter_overlong_prompts: True
+  truncation: 'error'
+
+actor_rollout_ref:
+  model:
+    path: Qwen/Qwen2.5-0.5B-Instruct
+    use_remove_padding: True
+    enable_gradient_checkpointing: False
+  actor:
+    optim:
+      lr: 1e-6
+    ppo_mini_batch_size: 4
+    ppo_micro_batch_size_per_gpu: 2
+    use_kl_loss: True
+    kl_loss_coef: 0.001
+    kl_loss_type: low_var_kl
+    strategy: fsdp2
+    fsdp_config:
+      param_offload: False
+      optimizer_offload: False
+  rollout:
+    tensor_model_parallel_size: 1
+    name: vllm
+    gpu_memory_utilization: 0.4
+    n: 4
+
+reward_model:
+  enable: False
+  reward_manager: naive
+
+# Point to your custom Python file and function
+custom_reward_function:
+  path: src/reward_wrapper.py
+  name: compute_score
+
+trainer:
+  critic_warmup: 0
+  logger: 'console'
+  project_name: transluce_test
+  experiment_name: 0.5B_test
+  n_gpus_per_node: 1
+  nnodes: 1
+  total_epochs: 1

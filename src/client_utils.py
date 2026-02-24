@@ -1,6 +1,6 @@
 from openai import AsyncOpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
-from logprobs import LogProbs
+from src.logprobs import LogProbs
 from transformers import PreTrainedTokenizerBase
 from tenacity import AsyncRetrying, before_sleep_log, stop_after_attempt, wait_random_exponential
 import logging

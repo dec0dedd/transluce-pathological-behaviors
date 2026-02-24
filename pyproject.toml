@@ -13,7 +13,11 @@ dependencies = [
     "jinja2",
     "rich",
     "verl>=0.4.1",
-    "vllm>=0.15.1",
+    "vllm==0.6.3",
+    "flash-attn>=2.8.3",
+    "pyairports>=0.0.1",
+    "airports>=0.1.2",
+    "outlines[all]>=0.0.46",
 ]
 
 [project.optional-dependencies]
@@ -30,6 +34,9 @@ packages = ["src"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.uv.sources]
+flash-attn = { url = "https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3+cu12torch2.4cxx11abiFALSE-cp312-cp312-linux_x86_64.whl" }
 
 [tool.pyright]
 include = ["src"]

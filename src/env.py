@@ -10,7 +10,7 @@ from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
 
 from prompts import RESPONSE_START_STR_V1, PROPOSAL_TEMPLATE_V1, FORCED_JAILBREAK_FALLBACK_TEMPLATE, PROMPT_JUDGE_TEMPLATE
 
-from logprobs import LogProbs
+from src.logprobs import LogProbs
 
 logger = logging.getLogger(__name__)
 
