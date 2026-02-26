@@ -8,9 +8,9 @@ from src.reward import compute_reward
 
 # 1. Define your model names globally (Must match exactly what you pass to vLLM)
 #TARGET_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
-TARGET_MODEL_NAME = "HuggingFaceTB/SmolLM2-135M-Instruct"
+TARGET_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 #JUDGE_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"
-JUDGE_MODEL_NAME = "HuggingFaceTB/SmolLM2-135M-Instruct"
+JUDGE_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 
 # 2. Initialize the tokenizer globally so it doesn't reload on every single prompt
 tokenizer = AutoTokenizer.from_pretrained(TARGET_MODEL_NAME)
@@ -30,7 +30,7 @@ def compute_score(data_source, solution_str: str, ground_truth: dict, extra_info
             max_retries=3
         )
         vllm_judge_client = AsyncOpenAI(
-            base_url="http://localhost:8001/v1",
+            base_url="http://localhost:8080/v1",
             api_key="EMPTY",
             max_retries=3
         )
