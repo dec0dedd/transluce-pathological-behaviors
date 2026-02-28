@@ -23,12 +23,6 @@ mkdir -p /root/transluce-pathological-behaviors/.venv/lib/python3.12/site-packag
 touch /root/transluce-pathological-behaviors/.venv/lib/python3.12/site-packages/pyairports/__init__.py
 echo "AIRPORT_LIST = []" > /root/transluce-pathological-behaviors/.venv/lib/python3.12/site-packages/pyairports/airports.py
 
-# This runs invisibly in the background. 
-# It checks the Ray folder every 0.5 seconds and forces wandb-core to be executable.
-(while true; do find /root/r/ray/ -name "wandb-core" -exec chmod +x {} + 2>/dev/null; sleep 0.5; done) &
-WATCHER_PID=$!
-
-# - 
 uv run python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
     data.train_files=prepared/train.parquet \
@@ -78,6 +72,3 @@ uv run python3 -m verl.trainer.main_ppo \
     critic.model.path=null \
     critic.model.tokenizer_path=null \
     actor_rollout_ref.actor.fsdp_config.model_dtype=bf16
-
-kill $WATCHER_PID
-uv run wandb sync

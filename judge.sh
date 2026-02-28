@@ -1,10 +1,9 @@
 #!/bin/bash
 
-
-uv run vllm serve Qwen/Qwen2.5-0.5B-Instruct \
+uv run vllm serve Qwen/Qwen2.5-14B-Instruct-AWQ \
 	--port 8080 \
 	--max-model-len 4096 \
-	--gpu-memory-utilization 0.1 \
+	--gpu-memory-utilization 0.4 \
 	--enforce-eager \
 	--max-num-seqs 16
 
