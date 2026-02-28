@@ -245,6 +245,7 @@ async def compute_reward(
                     {"role": "user", "content": policy_output},
                 ],
                 tokenize=False,
+                add_generation_prompt=True,
             ),
             temperature=1.0,
             logprobs=1,
@@ -288,7 +289,7 @@ async def compute_reward(
     # Handle thinking tokens result and compute normal_logprobs
     prefix, suffix = thinking_future.get()
 
-    async def get_normal_logprobs(prefix: str | None, suffix: str | None):
+    async def get_normal_logprobs(prefix: str | None, suffix: str | None, optimizer_target: str):
         if prefix is not None and suffix is not None:
             # this is logp(proposal | prompt, CoT-sampled)
             return await get_token_logprobs(
@@ -318,7 +319,8 @@ async def compute_reward(
                 # note that we need to include the thinking tokens in the output text,
                 # since we have to pay the penalty for not sampling the CoT from the model directly.
                 output_text=FORCED_JAILBREAK_FALLBACK_TEMPLATE.format(
-                    steered_response=steered_response
+                    steered_response=steered_response,
+                    optimizer_target=optimizer_target,
                 ),
             )
 
@@ -339,7 +341,7 @@ async def compute_reward(
 
     # Run second batch of parallel tasks
     async with anyio.create_task_group() as tg:
-        normal_logprobs_future = future_from_start_soon(tg, get_normal_logprobs, prefix, suffix)
+        normal_logprobs_future = future_from_start_soon(tg, get_normal_logprobs, prefix, suffix, optimizer_target)
         steered_logprobs_future = future_from_start_soon(tg, get_steered_logprobs)
 
         steered_response_score_future = future_from_start_soon(

@@ -39,7 +39,7 @@ uv run python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.ppo_mini_batch_size=1 \
-    actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=1 \
+    actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=4 \
     actor_rollout_ref.actor.kl_loss_coef=0.001 \
     actor_rollout_ref.actor.strategy=fsdp \
     actor_rollout_ref.model.enable_gradient_checkpointing=True \
@@ -49,8 +49,8 @@ uv run python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.max_num_seqs=4 \
     actor_rollout_ref.rollout.name=vllm \
-    actor_rollout_ref.rollout.gpu_memory_utilization=0.21 \
-    actor_rollout_ref.rollout.n=8 \
+    actor_rollout_ref.rollout.gpu_memory_utilization=0.7 \
+    actor_rollout_ref.rollout.n=32 \
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=1 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     actor_rollout_ref.actor.use_torch_compile=False \
@@ -66,7 +66,7 @@ uv run python3 -m verl.trainer.main_ppo \
     trainer.experiment_name='llama_test_run' \
     trainer.n_gpus_per_node=1 \
     trainer.nnodes=1 \
-    trainer.total_epochs=30 \
+    trainer.total_epochs=20 \
     trainer.val_before_train=False \
     trainer.test_freq=-1 \
     critic.model.path=null \

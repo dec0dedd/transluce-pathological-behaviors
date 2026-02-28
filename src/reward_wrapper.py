@@ -1,6 +1,7 @@
 import asyncio
 from openai import AsyncOpenAI
 from transformers import AutoTokenizer
+import traceback
 
 # Import the original complex logic from where you saved it
 # (Assuming you saved the code you provided as 'transluce_logic.py' in the same folder)
@@ -8,9 +9,9 @@ from src.reward import compute_reward
 
 # 1. Define your model names globally (Must match exactly what you pass to vLLM)
 #TARGET_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
-TARGET_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+TARGET_MODEL_NAME = "Qwen/Qwen2.5-3B-Instruct"
 #JUDGE_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"
-JUDGE_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+JUDGE_MODEL_NAME = "Qwen/Qwen2.5-14B-Instruct-AWQ"
 
 # 2. Initialize the tokenizer globally so it doesn't reload on every single prompt
 tokenizer = AutoTokenizer.from_pretrained(TARGET_MODEL_NAME)
@@ -22,34 +23,31 @@ def compute_score(data_source, solution_str: str, ground_truth: dict, extra_info
 
     # Define an internal async function to handle the API calls
     async def _run_async_reward():
-        # A. Initialize clients INSIDE the async function. 
-        # This prevents asyncio loop crashes across Ray workers.
-        vllm_target_client = AsyncOpenAI(
+        async with AsyncOpenAI(
             base_url="http://localhost:8000/v1",
             api_key="EMPTY",
             max_retries=3
-        )
-        vllm_judge_client = AsyncOpenAI(
+        ) as vllm_target_client, AsyncOpenAI(
             base_url="http://localhost:8080/v1",
             api_key="EMPTY",
             max_retries=3
-        )
+        ) as vllm_judge_client:
 
-        # B. Call the paper's heavy logic
-        prbo_result = await compute_reward(
-            gpt_oss_client=vllm_target_client,
-            gpt_oss_tokenizer=tokenizer,
-            behavior_id=behavior_id,
-            policy_output=solution_str,
-            optimizer_target=optimizer_target,
-            behavior=behavior,
-            openai_client=vllm_judge_client,
-            target_model=TARGET_MODEL_NAME,
-            prompt_judge_model=JUDGE_MODEL_NAME,
-            response_judge_model=JUDGE_MODEL_NAME,
-        )
-        
-        return prbo_result
+            # B. Call the paper's heavy logic
+            prbo_result = await compute_reward(
+                gpt_oss_client=vllm_target_client,
+                gpt_oss_tokenizer=tokenizer,
+                behavior_id=behavior_id,
+                policy_output=solution_str,
+                optimizer_target=optimizer_target,
+                behavior=behavior,
+                openai_client=vllm_judge_client,
+                target_model=TARGET_MODEL_NAME,
+                prompt_judge_model=JUDGE_MODEL_NAME,
+                response_judge_model=JUDGE_MODEL_NAME,
+            )
+            
+            return prbo_result
 
     # 3. Bridge the async gap using asyncio.run
     try:
@@ -60,7 +58,7 @@ def compute_score(data_source, solution_str: str, ground_truth: dict, extra_info
         
         # 4. Return ONLY the float that verl needs for the PPO update
         return float(prbo_struct.score)
-        
     except Exception as e:
         print(f"Reward computation failed for behavior {behavior_id}: {e}")
+        traceback.print_exc()
         return -100.0
