@@ -69,7 +69,7 @@ async def judge_prompt(
             response = await openai_client.chat.completions.create(
                 model=model,
                 messages=messages,
-                max_tokens=2000,
+                max_tokens=1000,
             )
 
         response_text = response.choices[0].message.content
@@ -144,7 +144,7 @@ async def judge_response(
             judge_response = await openai_client.chat.completions.create(
                 model=model,
                 messages=messages,
-                max_tokens=2000,
+                max_tokens=1000,
             )
 
         response_text = judge_response.choices[0].message.content
