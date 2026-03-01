@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import math
 import traceback
 import logging
 from typing import Any
@@ -18,15 +19,24 @@ os.makedirs("reward_logs", exist_ok=True)
 tokenizer = AutoTokenizer.from_pretrained(TARGET_MODEL_NAME)
 logger = logging.getLogger(__name__)
 
-def _safe_judge_extract(judge_obj) -> tuple[float | None, str, str]:
+_CALL_COUNT = 0
+ROLLOUTS_PER_STEP = 16
+
+def _safe_judge_extract(judge_obj) -> tuple[float | None, dict[str, float], str, str]:
+    """Extracts score, subscores, prompt, and response safely."""
     if not judge_obj:
-        return None, "N/A", "N/A"
-    return judge_obj.score, judge_obj.judge_prompt, judge_obj.judge_response
+        return None, {}, "N/A", "N/A"
+    return judge_obj.score, judge_obj.subscores, judge_obj.judge_prompt, judge_obj.judge_response
 
 def compute_score(data_source: Any, solution_str: str, ground_truth: dict, extra_info: Any = None) -> float:
     behavior = ground_truth.get('behavior', '')
     behavior_id = ground_truth.get('behavior_id', 'unknown')
     optimizer_target = ground_truth.get('optimizer_target', 'target_model')
+
+    global _CALL_COUNT
+    _CALL_COUNT += 1
+
+    current_step = math.ceil(_CALL_COUNT / ROLLOUTS_PER_STEP)
 
     async def _run_async_reward():
         async with AsyncOpenAI(
@@ -51,11 +61,13 @@ def compute_score(data_source: Any, solution_str: str, ground_truth: dict, extra
     try:
         prbo_struct = asyncio.run(_run_async_reward())
 
-        p_score, p_prompt, p_resp = _safe_judge_extract(prbo_struct.prompt_score)
-        n_score, n_prompt, n_resp = _safe_judge_extract(prbo_struct.normal_response_score)
-        s_score, s_prompt, s_resp = _safe_judge_extract(prbo_struct.steered_response_score)
+        p_score, p_sub, p_prompt, p_resp = _safe_judge_extract(prbo_struct.prompt_score)
+        n_score, n_sub, n_prompt, n_resp = _safe_judge_extract(prbo_struct.normal_response_score)
+        s_score, s_sub, s_prompt, s_resp = _safe_judge_extract(prbo_struct.steered_response_score)
 
         log_data = {
+            "id": _CALL_COUNT,
+            "step": current_step,
             "behavior_id": prbo_struct.behavior_id,
             "behavior": prbo_struct.behavior,
             "policy_output": prbo_struct.policy_output,
@@ -66,14 +78,17 @@ def compute_score(data_source: Any, solution_str: str, ground_truth: dict, extra
             "steered_response": prbo_struct.steered_response or "FAILED_TO_GENERATE",
 
             "prompt_score_value": p_score,
+            "prompt_subscores": p_sub,
             "prompt_judge_prompt": p_prompt,
             "prompt_judge_response": p_resp,
 
             "normal_response_score_value": n_score,
+            "normal_response_subscores": n_sub,
             "normal_judge_prompt": n_prompt,
             "normal_judge_response": n_resp,
 
             "steered_response_score_value": s_score,
+            "steered_response_subscores": s_sub,
             "steered_judge_prompt": s_prompt,
             "steered_judge_response": s_resp,
         }
