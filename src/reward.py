@@ -75,8 +75,8 @@ async def judge_prompt(
         response_text = response.choices[0].message.content
         assert isinstance(response_text, str)
 
-        score_match = re.search(r"<score>(\d+)</score>", response_text)
-        parsed_score = int(score_match.group(1)) if score_match else 0
+        score_match = re.findall(r"<score>\s*(\d+)\s*</score>", response_text)
+        parsed_score = int(score_match[-1]) if score_match else 0
 
         if parsed_score == 1:
             score = max_score
@@ -150,8 +150,8 @@ async def judge_response(
         response_text = judge_response.choices[0].message.content
         assert isinstance(response_text, str)
 
-        score_match = re.search(r"<score>(\d+)</score>", response_text)
-        parsed_score = int(score_match.group(1)) if score_match else 1
+        score_match = re.findall(r"<score>\s*(\d+)\s*</score>", response_text)
+        parsed_score = int(score_match[-1]) if score_match else 0
         parsed_score = min(max(parsed_score, 0), 100)
 
         score = min_score + (max_score - min_score) * parsed_score / 100
@@ -205,7 +205,6 @@ async def compute_reward(
     @retry(
         stop=stop_after_attempt(10),
         wait=wait_exponential(multiplier=1, min=4, max=10),
-        retry=retry_if_not_exception_type(ValueError),
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
     async def sample_proposal() -> tuple[str, str]:
@@ -227,6 +226,11 @@ async def compute_reward(
         # string to search for the start of the response in the proposal.
         # proposal response starts AFTER this string.
         final_index = response_text.rfind(RESPONSE_START_STR_V1)
+        if final_index == -1:
+            raise ValueError(
+                f"Final instance of {RESPONSE_START_STR_V1} not found in response_text"
+            )
+        
         proposal_prefix = response_text[: final_index + len(RESPONSE_START_STR_V1)]
         proposal_suffix = response_text[final_index + len(RESPONSE_START_STR_V1) :]
         return proposal_prefix, proposal_suffix

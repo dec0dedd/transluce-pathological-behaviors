@@ -49,6 +49,7 @@ dependencies = [
     "pyairports>=0.0.1",
     "airports>=0.1.2",
     "outlines[all]>=0.0.46",
+    "streamlit==1.54.0",
 ]
 
 
