@@ -1,0 +1,1 @@
+uv run streamlit run viewer.py --server.port 8069 --server.address 0.0.0.0

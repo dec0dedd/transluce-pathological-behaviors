@@ -35,7 +35,7 @@ actor_rollout_ref:
     n: 16
     max_model_len: 1024
     tensor_model_parallel_size: 1
-    max_num_seqs: 64
+    max_num_seqs: 32
     gpu_memory_utilization: 0.5
     log_prob_micro_batch_size_per_gpu: 8
     engine_kwargs:
@@ -43,7 +43,7 @@ actor_rollout_ref:
         max_model_len: 2048
         enable_prefix_caching: true
   ref:
-    log_prob_micro_batch_size_per_gpu: 8
+    log_prob_micro_batch_size_per_gpu: 4
     fsdp_config:
       param_offload: false
 
@@ -58,7 +58,7 @@ trainer:
   balance_batch: true
   logger: ["console", "wandb"]
   project_name: transluce_repro
-  experiment_name: qwen_25_3b_run
+  experiment_name: qwen_2_5_3b_run_fixed
   n_gpus_per_node: 1
   total_epochs: 200
   val_before_train: false

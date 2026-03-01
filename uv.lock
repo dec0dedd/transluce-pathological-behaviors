@@ -3218,7 +3218,7 @@ requires-dist = [
     { name = "opencv-fixer" },
     { name = "opencv-python" },
     { name = "optree", specifier = ">=0.13.0" },
-    { name = "outlines", extras = ["all"], specifier = ">=0.0.46" },
+    { name = "outlines", specifier = ">=0.0.46" },
     { name = "pandas" },
     { name = "peft" },
     { name = "pre-commit" },

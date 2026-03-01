@@ -7,7 +7,6 @@ import math
 st.set_page_config(page_title="Red-Teaming Log Viewer", layout="wide")
 st.title("🛡️ PRBO Reward Logs Viewer")
 
-# 1. Removed TTL. It now only reloads when you explicitly clear the cache.
 @st.cache_data
 def load_data():
     all_data = []
@@ -24,8 +23,11 @@ def load_data():
         return pd.DataFrame()
     
     df = pd.DataFrame(all_data)
+    
+    # Requirement 1: Strictly sort by score (decreasing)
     if "score" in df.columns:
         df = df.sort_values(by="score", ascending=False)
+        
     return df
 
 # Initialize session state for pagination
@@ -35,10 +37,9 @@ if "current_page" not in st.session_state:
 # --- Sidebar Controls ---
 st.sidebar.header("Controls & Filters")
 
-# Manual Refresh Button
 if st.sidebar.button("🔄 Refresh Data"):
-    load_data.clear()  # Clears the cache
-    st.session_state.current_page = 1 # Reset to page 1
+    load_data.clear()
+    st.session_state.current_page = 1
     st.rerun()
 
 df = load_data()
@@ -47,7 +48,7 @@ if df.empty:
     st.warning("No logs found in `reward_logs/`. Are the files being generated?")
     st.stop()
 
-# Filters
+# --- Filters ---
 selected_behavior = st.sidebar.selectbox(
     "Filter by Behavior ID:", 
     options=["All"] + df["behavior_id"].unique().tolist()
@@ -60,10 +61,25 @@ min_score = st.sidebar.slider(
     value=float(df["score"].min())
 )
 
-# Apply filters
 filtered_df = df[df["score"] >= min_score]
 if selected_behavior != "All":
     filtered_df = filtered_df[filtered_df["behavior_id"] == selected_behavior]
+
+# Requirement 2: Subset prompts by step
+if "step" in filtered_df.columns and pd.notnull(filtered_df["step"]).any():
+    min_step = int(filtered_df["step"].min())
+    max_step = int(filtered_df["step"].max())
+    
+    if min_step < max_step:
+        step_range = st.sidebar.slider(
+            "Filter by Step Range", 
+            min_value=min_step, 
+            max_value=max_step, 
+            value=(min_step, max_step)
+        )
+        filtered_df = filtered_df[(filtered_df["step"] >= step_range[0]) & (filtered_df["step"] <= step_range[1])]
+    else:
+        st.sidebar.write(f"**Current Step:** {min_step}")
 
 total_items = len(filtered_df)
 st.sidebar.write(f"**Total matching logs:** {total_items}")
@@ -76,11 +92,9 @@ if total_items == 0:
 ITEMS_PER_PAGE = 20
 total_pages = math.ceil(total_items / ITEMS_PER_PAGE)
 
-# Ensure current page is within bounds after filtering
 if st.session_state.current_page > total_pages:
     st.session_state.current_page = 1
 
-# Pagination Controls
 st.sidebar.markdown("---")
 st.sidebar.subheader("Pagination")
 page_selection = st.sidebar.number_input(
@@ -92,23 +106,37 @@ page_selection = st.sidebar.number_input(
 )
 st.session_state.current_page = page_selection
 
-# Calculate slice indices
 start_idx = (st.session_state.current_page - 1) * ITEMS_PER_PAGE
 end_idx = start_idx + ITEMS_PER_PAGE
 
-# Slice the dataframe to only the items for the current page
 page_df = filtered_df.iloc[start_idx:end_idx]
 
 st.write(f"Showing items **{start_idx + 1} to {min(end_idx, total_items)}** of **{total_items}**")
 
-# --- Main UI Loop (Only loops through the current page) ---
+# --- Helper for safely rendering subscores ---
+def render_subscores(subscores_dict):
+    if isinstance(subscores_dict, dict) and subscores_dict:
+        cols = st.columns(len(subscores_dict))
+        for i, (key, val) in enumerate(subscores_dict.items()):
+            clean_key = str(key).replace('_', ' ').title()
+            cols[i].metric(label=clean_key, value=f"{val}")
+        st.divider()
+
+# --- Main UI Loop ---
 for idx, row in page_df.iterrows():
-    with st.expander(f"Score: {row.get('score', 0):.2f} | Behavior: {row.get('behavior_id', 'Unknown')}", expanded=False):
+    step_num = row.get("step", "N/A")
+    log_id = row.get("id", "N/A")
+    score_val = row.get('score', 0)
+    
+    # Requirement 3: Added ID to the expander title
+    expander_title = f"ID: {log_id} | Step: {step_num} | Score: {score_val:.2f} | Behavior: {row.get('behavior_id', 'Unknown')}"
+    
+    with st.expander(expander_title, expanded=False):
         
         col1, col2, col3 = st.columns(3)
-        col1.metric("Total Score", f"{row.get('score', 0):.2f}")
+        col1.metric("Total Score", f"{score_val:.2f}")
         col2.metric("Prompt Score", f"{row.get('prompt_score_value', 0)}")
-        col3.metric("Normal/Steered Score", f"{row.get('normal_response_score_value', 0)} / {row.get('steered_response_score_value', 0)}")
+        col3.metric("Normal / Steered Score", f"{row.get('normal_response_score_value', 0):.2f} / {row.get('steered_response_score_value', 0):.2f}")
         
         st.markdown("### 🎯 Behavior Target")
         st.info(row.get("behavior", "N/A"))
@@ -129,8 +157,13 @@ for idx, row in page_df.iterrows():
         tab1, tab2, tab3 = st.tabs(["Prompt Judge", "Normal Response Judge", "Steered Response Judge"])
         
         with tab1:
+            render_subscores(row.get("prompt_subscores", {}))
             st.write(row.get("prompt_judge_response", "N/A"))
+            
         with tab2:
+            render_subscores(row.get("normal_response_subscores", {}))
             st.write(row.get("normal_judge_response", "N/A"))
+            
         with tab3:
+            render_subscores(row.get("steered_response_subscores", {}))
             st.write(row.get("steered_judge_response", "N/A"))
