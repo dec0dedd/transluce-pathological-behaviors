@@ -1,10 +1,11 @@
 #!/bin/bash
 
-uv run vllm serve Qwen/Qwen2.5-14B-Instruct-AWQ \
+uv run vllm serve Qwen/Qwen2.5-32B-Instruct-AWQ \
 	--port 8080 \
-	--max-model-len 8192 \
-	--gpu-memory-utilization 0.5 \
+	--max-model-len 4096 \
+	--gpu-memory-utilization 0.6 \
 	--enforce-eager \
-	--max-num-seqs 16
+	--max-num-seqs 64 \
+	--quantization awq_marlin
 
 echo "vLLM Judge spawned on 8080"

@@ -11,8 +11,8 @@ from transformers import AutoTokenizer
 
 from src.reward import compute_reward
 
-TARGET_MODEL_NAME = "Qwen/Qwen2.5-3B-Instruct"
-JUDGE_MODEL_NAME = "Qwen/Qwen2.5-14B-Instruct-AWQ"
+TARGET_MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
+JUDGE_MODEL_NAME = "Qwen/Qwen2.5-32B-Instruct-AWQ"
 
 os.makedirs("reward_logs", exist_ok=True)
 

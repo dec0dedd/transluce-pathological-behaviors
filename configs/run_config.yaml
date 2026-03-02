@@ -10,7 +10,7 @@ data:
   train_files: prepared/train.parquet
   val_files: prepared/train.parquet
   train_batch_size: 1
-  max_prompt_length: 2048
+  max_prompt_length: 1024
   max_response_length: 1024
   filter_overlong_prompts: true
 
@@ -20,8 +20,9 @@ actor_rollout_ref:
     use_remove_padding: true
     enable_gradient_checkpointing: true 
   actor:
+    grad_clip: 1.0
     optim:
-      lr: 1e-6
+      lr: 1e-7
     ppo_mini_batch_size: 1
     ppo_micro_batch_size_per_gpu: 4
     kl_loss_coef: 0.001
@@ -32,15 +33,15 @@ actor_rollout_ref:
       model_dtype: bf16
   rollout:
     name: vllm
-    n: 16
-    max_model_len: 1024
+    n: 64
+    max_model_len: 2560
     tensor_model_parallel_size: 1
     max_num_seqs: 32
     gpu_memory_utilization: 0.5
     log_prob_micro_batch_size_per_gpu: 8
     engine_kwargs:
       vllm:
-        max_model_len: 2048
+        max_model_len: 2560
         enable_prefix_caching: true
   ref:
     log_prob_micro_batch_size_per_gpu: 4
@@ -58,10 +59,8 @@ trainer:
   balance_batch: true
   logger: ["console", "wandb"]
   project_name: transluce_repro
-  experiment_name: qwen_2_5_3b_run_fixed
+  experiment_name: qwen_2_5_3b_run_32b_judge
   n_gpus_per_node: 1
   total_epochs: 200
   val_before_train: false
   test_freq: -1
-  save_freq: 30
-  default_local_dir: saved_models/qwen-2_5-3b-grpo

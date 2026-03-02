@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import glob
 import math
+import re
 
 st.set_page_config(page_title="Red-Teaming Log Viewer", layout="wide")
 st.title("🛡️ PRBO Reward Logs Viewer")
@@ -24,13 +25,11 @@ def load_data():
     
     df = pd.DataFrame(all_data)
     
-    # Requirement 1: Strictly sort by score (decreasing)
     if "score" in df.columns:
         df = df.sort_values(by="score", ascending=False)
         
     return df
 
-# Initialize session state for pagination
 if "current_page" not in st.session_state:
     st.session_state.current_page = 1
 
@@ -65,7 +64,6 @@ filtered_df = df[df["score"] >= min_score]
 if selected_behavior != "All":
     filtered_df = filtered_df[filtered_df["behavior_id"] == selected_behavior]
 
-# Requirement 2: Subset prompts by step
 if "step" in filtered_df.columns and pd.notnull(filtered_df["step"]).any():
     min_step = int(filtered_df["step"].min())
     max_step = int(filtered_df["step"].max())
@@ -113,7 +111,7 @@ page_df = filtered_df.iloc[start_idx:end_idx]
 
 st.write(f"Showing items **{start_idx + 1} to {min(end_idx, total_items)}** of **{total_items}**")
 
-# --- Helper for safely rendering subscores ---
+# --- Helpers ---
 def render_subscores(subscores_dict):
     if isinstance(subscores_dict, dict) and subscores_dict:
         cols = st.columns(len(subscores_dict))
@@ -122,13 +120,27 @@ def render_subscores(subscores_dict):
             cols[i].metric(label=clean_key, value=f"{val}")
         st.divider()
 
+def parse_policy_output(output_str):
+    scratchpad, test_prompt = None, None
+    if not isinstance(output_str, str):
+        return scratchpad, test_prompt
+        
+    sp_match = re.search(r"<scratchpad>\s*(.*?)\s*</scratchpad>", output_str, re.DOTALL | re.IGNORECASE)
+    if sp_match:
+        scratchpad = sp_match.group(1).strip()
+        
+    tp_match = re.search(r"<test_prompt>\s*(.*?)\s*</test_prompt>", output_str, re.DOTALL | re.IGNORECASE)
+    if tp_match:
+        test_prompt = tp_match.group(1).strip()
+        
+    return scratchpad, test_prompt
+
 # --- Main UI Loop ---
 for idx, row in page_df.iterrows():
     step_num = row.get("step", "N/A")
     log_id = row.get("id", "N/A")
     score_val = row.get('score', 0)
     
-    # Requirement 3: Added ID to the expander title
     expander_title = f"ID: {log_id} | Step: {step_num} | Score: {score_val:.2f} | Behavior: {row.get('behavior_id', 'Unknown')}"
     
     with st.expander(expander_title, expanded=False):
@@ -141,9 +153,33 @@ for idx, row in page_df.iterrows():
         st.markdown("### 🎯 Behavior Target")
         st.info(row.get("behavior", "N/A"))
         
-        st.markdown("### 📝 Investigator Prompt (Policy Output)")
-        st.code(row.get("policy_output", "N/A"), language="text")
+        # --- Upgraded Investigator Output Section ---
+        st.markdown("### 📝 Investigator Output")
+        raw_policy_output = row.get("policy_output", "")
+        scratchpad, test_prompt = parse_policy_output(raw_policy_output)
         
+        if scratchpad or test_prompt:
+            if scratchpad:
+                with st.expander("🧠 Investigator Scratchpad (Internal Planning)", expanded=False):
+                    st.markdown(f"*{scratchpad}*")
+            
+            if test_prompt:
+                st.markdown("**Test Prompt (Sent to Target Model):**")
+                # UPDATED: Added wrap_lines=True to fix horizontal scrolling
+                st.code(test_prompt, language="text", wrap_lines=True)
+            else:
+                clean_text = re.sub(r"<scratchpad>.*?</scratchpad>", "", raw_policy_output, flags=re.DOTALL | re.IGNORECASE).strip()
+                st.markdown("**Test Prompt (Fallback Parsing):**")
+                # UPDATED: Added wrap_lines=True
+                st.code(clean_text if clean_text else raw_policy_output, language="text", wrap_lines=True)
+        else:
+            st.markdown("**Raw Output (No tags detected):**")
+            # UPDATED: Added wrap_lines=True
+            st.code(raw_policy_output, language="text", wrap_lines=True)
+            
+        st.markdown("---")
+        
+        # --- Target Model Responses ---
         st.markdown("### 🤖 Target Model Responses")
         col_norm, col_steer = st.columns(2)
         with col_norm:
