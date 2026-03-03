@@ -59,7 +59,7 @@ trainer:
   balance_batch: true
   logger: ["console", "wandb"]
   project_name: transluce_repro
-  experiment_name: qwen_2_5_3b_run_32b_judge
+  experiment_name: improved_rubric_32b
   n_gpus_per_node: 1
   total_epochs: 200
   val_before_train: false
