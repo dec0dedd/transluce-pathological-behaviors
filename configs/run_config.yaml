@@ -59,7 +59,7 @@ trainer:
   balance_batch: true
   logger: ["console", "wandb"]
   project_name: transluce_repro
-  experiment_name: improved_rubric_32b
+  experiment_name: new_rubric
   n_gpus_per_node: 1
   total_epochs: 200
   val_before_train: false
