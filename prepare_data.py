@@ -3,7 +3,7 @@ import datasets
 import pandas as pd
 import argparse
 
-from src.prompts import INVESTIGATOR_PROMPT_TEMPLATE
+from src.prompts import INVESTIGATOR_USER_PROMPT
 
 def make_map_fn(split):
     """
@@ -14,7 +14,7 @@ def make_map_fn(split):
         behavior = example['behavior']
         
         # 1. Format the prompt as a standard HF chat list
-        prompt_content = INVESTIGATOR_PROMPT_TEMPLATE.format(behavior=behavior)        
+        prompt_content = INVESTIGATOR_USER_PROMPT.format(behavior=behavior)        
 
         prompt = [{
             "role": "user",

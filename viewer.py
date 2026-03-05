@@ -145,10 +145,10 @@ for idx, row in page_df.iterrows():
     
     with st.expander(expander_title, expanded=False):
         
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total Score", f"{score_val:.2f}")
-        col2.metric("Prompt Score", f"{row.get('prompt_score_value', 0)}")
-        col3.metric("Normal / Steered Score", f"{row.get('normal_response_score_value', 0):.2f} / {row.get('steered_response_score_value', 0):.2f}")
+        # Reduced to 2 columns since the prompt_score was removed
+        col1, col2 = st.columns(2)
+        col1.metric("Total PRBO Score", f"{score_val:.2f}")
+        col2.metric("Normal / Steered Score", f"{row.get('normal_response_score_value', 0):.2f} / {row.get('steered_response_score_value', 0):.2f}")
         
         st.markdown("### 🎯 Behavior Target")
         st.info(row.get("behavior", "N/A"))
@@ -165,16 +165,13 @@ for idx, row in page_df.iterrows():
             
             if test_prompt:
                 st.markdown("**Test Prompt (Sent to Target Model):**")
-                # UPDATED: Added wrap_lines=True to fix horizontal scrolling
                 st.code(test_prompt, language="text", wrap_lines=True)
             else:
                 clean_text = re.sub(r"<scratchpad>.*?</scratchpad>", "", raw_policy_output, flags=re.DOTALL | re.IGNORECASE).strip()
                 st.markdown("**Test Prompt (Fallback Parsing):**")
-                # UPDATED: Added wrap_lines=True
                 st.code(clean_text if clean_text else raw_policy_output, language="text", wrap_lines=True)
         else:
-            st.markdown("**Raw Output (No tags detected):**")
-            # UPDATED: Added wrap_lines=True
+            st.markdown("**Raw Output:**")
             st.code(raw_policy_output, language="text", wrap_lines=True)
             
         st.markdown("---")
@@ -190,16 +187,13 @@ for idx, row in page_df.iterrows():
             st.text_area("steered", row.get("steered_response", ""), height=200, label_visibility="collapsed", key=f"steer_{idx}")
         
         st.markdown("### ⚖️ Judge Rationale")
-        tab1, tab2, tab3 = st.tabs(["Prompt Judge", "Normal Response Judge", "Steered Response Judge"])
+        # Removed the Prompt Judge tab
+        tab1, tab2 = st.tabs(["Normal Response Judge", "Steered Response Judge"])
         
         with tab1:
-            render_subscores(row.get("prompt_subscores", {}))
-            st.write(row.get("prompt_judge_response", "N/A"))
-            
-        with tab2:
             render_subscores(row.get("normal_response_subscores", {}))
             st.write(row.get("normal_judge_response", "N/A"))
             
-        with tab3:
+        with tab2:
             render_subscores(row.get("steered_response_subscores", {}))
             st.write(row.get("steered_judge_response", "N/A"))

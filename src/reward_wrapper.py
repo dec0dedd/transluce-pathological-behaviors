@@ -61,7 +61,6 @@ def compute_score(data_source: Any, solution_str: str, ground_truth: dict, extra
     try:
         prbo_struct = asyncio.run(_run_async_reward())
 
-        p_score, p_sub, p_prompt, p_resp = _safe_judge_extract(prbo_struct.prompt_score)
         n_score, n_sub, n_prompt, n_resp = _safe_judge_extract(prbo_struct.normal_response_score)
         s_score, s_sub, s_prompt, s_resp = _safe_judge_extract(prbo_struct.steered_response_score)
 
@@ -76,11 +75,6 @@ def compute_score(data_source: Any, solution_str: str, ground_truth: dict, extra
 
             "normal_response": prbo_struct.normal_response or "FAILED_TO_GENERATE",
             "steered_response": prbo_struct.steered_response or "FAILED_TO_GENERATE",
-
-            "prompt_score_value": p_score,
-            "prompt_subscores": p_sub,
-            "prompt_judge_prompt": p_prompt,
-            "prompt_judge_response": p_resp,
 
             "normal_response_score_value": n_score,
             "normal_response_subscores": n_sub,
