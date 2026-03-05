@@ -16,37 +16,39 @@ data:
 
 actor_rollout_ref:
   model:
-    path: Qwen/Qwen2.5-3B-Instruct
+    path: Qwen/Qwen2.5-3B
     use_remove_padding: true
     enable_gradient_checkpointing: true 
   actor:
     grad_clip: 1.0
     optim:
-      lr: 1e-7
+      lr: 1e-6
     ppo_mini_batch_size: 1
-    ppo_micro_batch_size_per_gpu: 4
+    ppo_micro_batch_size_per_gpu: 2
     kl_loss_coef: 0.001
     strategy: fsdp
     fsdp_config:
-      param_offload: false
-      optimizer_offload: false
+      param_offload: true
+      optimizer_offload: true
       model_dtype: bf16
   rollout:
     name: vllm
-    n: 64
+    n: 256
+    temperature: 0.8 
+    top_p: 0.9
     max_model_len: 2560
     tensor_model_parallel_size: 1
     max_num_seqs: 32
-    gpu_memory_utilization: 0.5
-    log_prob_micro_batch_size_per_gpu: 8
+    gpu_memory_utilization: 0.25
+    log_prob_micro_batch_size_per_gpu: 4
     engine_kwargs:
       vllm:
         max_model_len: 2560
         enable_prefix_caching: true
   ref:
-    log_prob_micro_batch_size_per_gpu: 4
+    log_prob_micro_batch_size_per_gpu: 2
     fsdp_config:
-      param_offload: false
+      param_offload: true
 
 reward_model:
   reward_manager: naive
