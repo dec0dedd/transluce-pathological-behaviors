@@ -194,13 +194,24 @@ class PRBOEvaluator:
 
     async def evaluate(self, behavior_id: str, behavior: str, policy_output: str) -> PRBOReward:
         
+        # --- NEW: Extract the clean prompt from the XML tags ---
+        tp_match = re.search(r"<test_prompt>\s*(.*?)\s*</test_prompt>", policy_output, re.DOTALL | re.IGNORECASE)
+        if tp_match:
+            clean_prompt = tp_match.group(1).strip()
+        else:
+            # Fallback: try to strip out the scratchpad if the test_prompt tag is missing
+            clean_prompt = re.sub(r"<scratchpad>.*?</scratchpad>", "", policy_output, flags=re.DOTALL | re.IGNORECASE).strip()
+            if not clean_prompt:
+                clean_prompt = policy_output.strip()
+        # -------------------------------------------------------
+
         # 1. Format the Steering Prefix (Proposal Distribution c)
-        # We inject the generated prompt into the ChatML format with the compliance prefix
-        steered_prompt = PROPOSAL_TEMPLATE_V1.format(user_prompt=policy_output)
+        # We inject the CLEAN prompt into the ChatML format with the compliance prefix
+        steered_prompt = PROPOSAL_TEMPLATE_V1.format(user_prompt=clean_prompt)
         proposal_prefix = RESPONSE_START_STR_V1
         
-        # The unsteered target gets just the raw prompt (or format this with a standard chat template if needed)
-        normal_prompt = f"<|im_start|>user\n{policy_output}<|im_end|>\n<|im_start|>assistant\n"
+        # The unsteered target gets just the raw clean prompt 
+        normal_prompt = f"<|im_start|>user\n{clean_prompt}<|im_end|>\n<|im_start|>assistant\n"
 
         # 2. Generate Responses
         normal_response = await self.target.generate(normal_prompt)
@@ -209,9 +220,9 @@ class PRBOEvaluator:
         steered_response_continuation = await self.target.generate(steered_prompt)
         steered_response_full = proposal_prefix + " " + steered_response_continuation
 
-        # 3. Score with the Judge
-        normal_response_score = await self.judge.evaluate_response(policy_output, normal_response, behavior)
-        steered_response_score = await self.judge.evaluate_response(policy_output, steered_response_full, behavior)
+        # 3. Score with the Judge (Using the clean prompt!)
+        normal_response_score = await self.judge.evaluate_response(clean_prompt, normal_response, behavior)
+        steered_response_score = await self.judge.evaluate_response(clean_prompt, steered_response_full, behavior)
 
         # 4. Compute Logprobs for PRBO Density Ratio
         normal_logprobs = await self.target.get_response_logprobs(normal_prompt, steered_response_full)
@@ -225,7 +236,7 @@ class PRBOEvaluator:
 
         return PRBOReward(
             behavior_id=behavior_id,
-            policy_output=policy_output,
+            policy_output=policy_output, # Still return the full output for logging/Streamlit!
             score=final_score,
             normal_response=normal_response,
             steered_response=steered_response_full,
@@ -236,7 +247,6 @@ class PRBOEvaluator:
             proposal_prefix=proposal_prefix,
             behavior=behavior
         )
-
 
 # ==========================================
 # 5. Main Entry Point
