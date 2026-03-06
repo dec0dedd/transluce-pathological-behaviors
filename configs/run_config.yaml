@@ -16,7 +16,7 @@ data:
 
 actor_rollout_ref:
   model:
-    path: Qwen/Qwen2.5-3B
+    path: Qwen/Qwen2.5-3B-Instruct
     use_remove_padding: true
     enable_gradient_checkpointing: true 
   actor:
@@ -61,7 +61,7 @@ trainer:
   balance_batch: true
   logger: ["console", "wandb"]
   project_name: transluce_repro
-  experiment_name: new_rubric
+  experiment_name: Qwen/Qwen2.5-3B-Instruct
   n_gpus_per_node: 1
   total_epochs: 200
   val_before_train: false
